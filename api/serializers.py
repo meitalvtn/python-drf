@@ -1,8 +1,4 @@
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.encoding import smart_text
 from rest_framework import serializers
-from rest_framework.relations import PrimaryKeyRelatedField
-
 from .models import Transaction, PolicyRule, PolicyRuleDestination
 
 
@@ -10,7 +6,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ['id', 'amount', 'dest', 'outgoing']  # TODO: remove outgoing field
+        fields = ['id', 'amount', 'destination', 'outgoing']  # TODO: remove outgoing field
 
 
 class PolicyRuleDestinationSerializer(serializers.ModelSerializer):
@@ -25,19 +21,31 @@ class PolicyRuleDestinationSerializer(serializers.ModelSerializer):
         return instance.address
 
 
-
 class PolicyRuleSerializer(serializers.ModelSerializer):
-    dests = PolicyRuleDestinationSerializer(many=True, required=False, allow_null=True)
+    destinations = PolicyRuleDestinationSerializer(many=True, required=False, allow_null=True)
 
     class Meta:
         model = PolicyRule
-        fields = ['id', 'max', 'dests']
+        fields = ['id', 'amount', 'destinations']
 
     def create(self, validated_data):
-        print(validated_data)
-        dests_data = validated_data.pop('dests')
+        dests_data = validated_data.pop('destinations')
         rule = PolicyRule.objects.create(**validated_data)
         if dests_data:
             for dest_data in dests_data:
                 PolicyRuleDestination.objects.create(rule=rule, **dest_data)
         return rule
+
+    def update(self, instance, validated_data):
+        instance.amount = validated_data['amount']
+        dests_data = validated_data.pop('destinations')
+
+        # to support additions and deletions, clear out all destinations
+        PolicyRuleDestination.objects.filter(rule_id=instance.id).delete()
+
+        # re-add destinations according to request data
+        if dests_data:
+            for dest_data in dests_data:
+                PolicyRuleDestination.objects.create(rule=instance, **dest_data)
+
+        return instance
