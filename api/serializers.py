@@ -6,7 +6,7 @@ class TransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Transaction
-        fields = ['id', 'amount', 'destination', 'outgoing']  # TODO: remove outgoing field
+        fields = ['id', 'amount', 'destination', 'outgoing']
 
 
 class PolicyRuleDestinationSerializer(serializers.ModelSerializer):
